@@ -53,6 +53,13 @@ async def wiki_page(request: Request):
     return templates.TemplateResponse(request, "wiki.html")
 
 
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """Local customer chat UI. Posts to public LumenX API; the poller picks
+    up messages and drafts replies the same way it would in production."""
+    return templates.TemplateResponse(request, "chat.html")
+
+
 @app.get("/inbox", response_class=HTMLResponse)
 async def inbox_page(request: Request):
     pending = await _get_pending_drafts()

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Customer chat · Lumenx</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/globals.css"/>
+  <style>
+    html, body { height: 100%; }
+    .chat-app { display: grid; grid-template-rows: 64px 1fr; height: 100vh; }
+    .nav { background: rgba(250, 248, 244, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+
+    .frame {
+      display: grid; grid-template-columns: 280px 1fr;
+      height: calc(100vh - 64px); overflow: hidden;
+    }
+
+    /* Side rail */
+    .side {
+      background: white; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .side-head { padding: 1rem 1.1rem; border-bottom: 1px solid var(--border); }
+    .who { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink); line-height: 1.05; }
+    .who input { font-family: var(--font-display); font-size: 1.4rem; padding: 0.2rem 0.4rem; }
+    .thread-id { font-family: var(--font-mono); font-size: 0.74rem; color: var(--slate); margin-top: 0.3rem; }
+    .new-btn { margin-top: 0.7rem; }
+
+    .threads { flex: 1; overflow-y: auto; padding: 0.6rem; }
+    .thread-row {
+      padding: 0.6rem 0.8rem; border-radius: var(--radius-sm);
+      cursor: pointer; margin-bottom: 0.3rem;
+      transition: background 0.15s ease;
+      font-size: 0.86rem;
+    }
+    .thread-row:hover { background: var(--slate-soft); }
+    .thread-row.active { background: var(--violet-soft); color: var(--violet); }
+    .thread-row .preview { color: var(--ink-soft); font-size: 0.78rem; margin-top: 0.18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Main chat */
+    .chat-pane { display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+    .chat-head {
+      padding: 1rem 1.4rem; border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(6px);
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    }
+    .chat-head .title { font-family: var(--font-display); font-size: 1.4rem; line-height: 1.05; color: var(--ink); }
+    .chat-head .meta { font-size: 0.78rem; color: var(--slate); }
+
+    .chat-feed { flex: 1; overflow-y: auto; padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 0.8rem; }
+
+    .msg { display: flex; flex-direction: column; max-width: 75%; }
+    .msg .author { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; color: var(--slate); font-weight: 700; }
+    .msg.customer { align-self: flex-end; align-items: flex-end; }
+    .msg.customer .author { color: var(--violet); }
+    .msg.customer .bubble { background: var(--violet); color: white; border-radius: 14px 14px 4px 14px; }
+    .msg.admin { align-self: flex-start; align-items: flex-start; }
+    .msg.admin .author { color: var(--teal); }
+    .msg.admin .bubble { background: white; color: var(--ink); border: 1px solid var(--border); border-radius: 14px 14px 14px 4px; box-shadow: var(--shadow-sm); }
+    .bubble { padding: 0.7rem 0.95rem; font-size: 0.94rem; line-height: 1.55; word-wrap: break-word; white-space: pre-wrap; }
+    .bubble .meta { font-size: 0.7rem; opacity: 0.7; margin-top: 0.35rem; font-family: var(--font-mono); }
+
+    .empty-state {
+      text-align: center; color: var(--slate); margin: auto;
+    }
+    .empty-state .ico { font-family: var(--font-display); font-size: 2rem; color: var(--violet); }
+    .empty-state .title { font-family: var(--font-display); font-size: 1.6rem; color: var(--ink); margin: 0.2rem 0; }
+
+    .composer {
+      padding: 0.85rem 1rem; border-top: 1px solid var(--border);
+      background: white; display: flex; gap: 0.6rem; align-items: flex-end;
+    }
+    .composer textarea {
+      flex: 1; resize: none; min-height: 44px; max-height: 160px;
+      font-family: inherit; font-size: 0.94rem;
+    }
+    .send-btn {
+      background: var(--violet); width: 44px; height: 44px;
+      padding: 0; border-radius: var(--radius-sm); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .send-btn:hover { background: #6d28d9; }
+    .send-btn svg { width: 18px; height: 18px; }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .status-dot.live { background: #22c55e; }
+    .status-dot.stale { background: var(--slate); }
+
+    /* Awaiting / typing indicator */
+    .awaiting {
+      align-self: flex-start; background: var(--slate-soft);
+      padding: 0.6rem 0.95rem; border-radius: var(--radius);
+      font-size: 0.85rem; color: var(--ink-soft);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .typing-dots { display: flex; gap: 3px; }
+    .typing-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--slate); animation: bounce 1.4s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-4px); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<div class="chat-app">
+
+  <nav class="nav">
+    <a class="nav-brand" href="/">
+      <span class="dot"></span>
+      Lumenx <span class="subtitle">customer chat</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 1.4rem;">
+      <span id="conn-status" style="font-size: 0.84rem; color: var(--slate);">
+        <span class="status-dot stale"></span> Connecting…
+      </span>
+      <div class="nav-links">
+        <a href="/">Overview</a>
+        <a href="/chat" class="active">Chat (you)</a>
+        <a href="/inbox">Inbox (admin)</a>
+        <a href="/wiki">Wiki</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="frame">
+
+    <aside class="side">
+      <div class="side-head">
+        <div class="eyebrow">You are</div>
+        <div class="who"><input id="username-input" type="text" placeholder="your name" maxlength="40"/></div>
+        <div class="thread-id" id="current-thread-id">no thread selected</div>
+        <button id="new-thread-btn" class="new-btn ghost" style="width: 100%;">+ Start new chat</button>
+      </div>
+      <div class="eyebrow" style="padding: 0.8rem 1rem 0.3rem;">Your threads</div>
+      <div class="threads" id="threads-list"></div>
+    </aside>
+
+    <main class="chat-pane">
+      <div class="chat-head">
+        <div>
+          <div class="title" id="chat-title">Pick or start a chat</div>
+          <div class="meta" id="chat-meta">Customer messages get auto-drafted by the agent</div>
+        </div>
+        <div class="meta mono" id="chat-stats">—</div>
+      </div>
+
+      <div class="chat-feed" id="chat-feed">
+        <div class="empty-state">
+          <div class="ico">say hi</div>
+          <div class="title">Customer view</div>
+          <div style="font-size: 0.9rem; color: var(--ink-soft); max-width: 38ch; margin: 0.4rem auto 0;">
+            Type a question below. The reply will come from Lumi — our auto-reply agent on the admin side. High-confidence drafts are auto-sent; low-confidence ones are reviewed by a human at <a href="/inbox">/inbox</a>.
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <textarea id="msg-input" placeholder="Ask anything about Lumenx products…" rows="1"></textarea>
+        <button id="send-btn" class="send-btn" title="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<script>
+const LUMENX = "https://lumenx-demo.up.railway.app";
+let username = localStorage.getItem("chat_username") || "you_" + Math.random().toString(36).slice(2, 6);
+let currentThreadId = localStorage.getItem("chat_thread_id") || null;
+let lastMessageCount = 0;
+let pollTimer = null;
+let awaitingReplyShown = false;
+
+const $ = id => document.getElementById(id);
+
+function setStatus(ok) {
+  const el = $("conn-status");
+  el.innerHTML = ok
+    ? '<span class="status-dot live"></span> Live'
+    : '<span class="status-dot stale"></span> Reconnecting…';
+}
+
+$("username-input").value = username;
+$("username-input").addEventListener("change", () => {
+  username = $("username-input").value.trim() || "anon";
+  localStorage.setItem("chat_username", username);
+  loadThreadList();
+});
+
+$("new-thread-btn").addEventListener("click", () => newThread());
+
+$("msg-input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+$("msg-input").addEventListener("input", () => {
+  const t = $("msg-input");
+  t.style.height = "44px";
+  t.style.height = Math.min(t.scrollHeight, 160) + "px";
+});
+$("send-btn").addEventListener("click", sendMessage);
+
+async function loadThreadList() {
+  try {
+    const res = await fetch(`${LUMENX}/api/threads?username=${encodeURIComponent(username)}`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    setStatus(true);
+    const threads = data.threads || data;
+    const list = $("threads-list");
+    list.innerHTML = "";
+    if (!threads.length) {
+      list.innerHTML = '<div style="padding:0.6rem 0.8rem;color:var(--slate);font-size:0.84rem;">No threads yet</div>';
+      return;
+    }
+    threads.forEach(t => {
+      const div = document.createElement("div");
+      div.className = "thread-row" + (t.id === currentThreadId ? " active" : "");
+      const preview = (t.last_message || "").slice(0, 80) || "(empty)";
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:0.4rem;">
+          <span style="font-weight:600;">${escapeHtml(t.intent || "thread")}</span>
+          <span style="font-size:0.7rem;color:var(--slate);">${(t.message_count || 0)} msgs</span>
+        </div>
+        <div class="preview">${escapeHtml(preview)}</div>`;
+      div.addEventListener("click", () => openThread(t.id));
+      list.appendChild(div);
+    });
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+async function newThread() {
+  try {
+    const body = JSON.stringify({ username, display_name: username });
+    const res = await fetch(`${LUMENX}/api/threads`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body,
+    });
+    const data = await res.json();
+    const t = data.thread || data;
+    currentThreadId = t.id;
+    localStorage.setItem("chat_thread_id", currentThreadId);
+    lastMessageCount = 0;
+    await loadThreadList();
+    await renderThread();
+    $("msg-input").focus();
+  } catch (e) {
+    alert("Could not create thread: " + e.message);
+  }
+}
+
+async function openThread(id) {
+  currentThreadId = id;
+  localStorage.setItem("chat_thread_id", id);
+  lastMessageCount = 0;
+  await loadThreadList();
+  await renderThread();
+}
+
+async function renderThread() {
+  if (!currentThreadId) return;
+  $("current-thread-id").textContent = currentThreadId;
+
+  try {
+    const res = await fetch(`${LUMENX}/api/threads/${currentThreadId}?viewer=customer`);
+    if (!res.ok) {
+      if (res.status === 404) {
+        // Thread was wiped (Lumenx reseeds on container boot) — start a fresh one
+        currentThreadId = null;
+        localStorage.removeItem("chat_thread_id");
+        $("chat-feed").innerHTML = '<div class="empty-state"><div class="title">Thread expired</div><div style="color:var(--ink-soft);">Pick another or start a new chat.</div></div>';
+        return;
+      }
+      throw new Error("HTTP " + res.status);
+    }
+    const data = await res.json();
+    setStatus(true);
+    const t = data.thread || data;
+    const msgs = t.messages || [];
+
+    $("chat-title").textContent = "Chat with Lumi";
+    $("chat-meta").textContent = `${msgs.length} messages · thread ${currentThreadId.slice(0, 14)}`;
+    $("chat-stats").innerHTML = `<span class="status-dot live"></span> live`;
+
+    const feed = $("chat-feed");
+
+    // If a new admin message arrived since last render, scroll to it
+    const newCount = msgs.length;
+    const hadNew = newCount > lastMessageCount;
+    lastMessageCount = newCount;
+
+    feed.innerHTML = "";
+    msgs.forEach(m => {
+      const div = document.createElement("div");
+      div.className = "msg " + (m.role === "admin" ? "admin" : "customer");
+      const who = m.role === "admin" ? "Lumi (agent)" : "you";
+      const ts = (m.ts || "").substring(11, 19);
+      div.innerHTML = `
+        <div class="author">${who}</div>
+        <div class="bubble">${escapeHtml(m.text)}<div class="meta">${ts}</div></div>`;
+      feed.appendChild(div);
+    });
+
+    // Show "agent is drafting…" if the most recent message is from the customer
+    const last = msgs[msgs.length - 1];
+    awaitingReplyShown = last && last.role === "customer";
+    if (awaitingReplyShown) {
+      const w = document.createElement("div");
+      w.className = "awaiting";
+      w.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div> Lumi is drafting a reply…';
+      feed.appendChild(w);
+    }
+
+    if (hadNew) feed.scrollTop = feed.scrollHeight;
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+async function sendMessage() {
+  const text = $("msg-input").value.trim();
+  if (!text) return;
+
+  // Ensure we have a thread
+  if (!currentThreadId) {
+    await newThread();
+    if (!currentThreadId) return;
+  }
+
+  $("send-btn").disabled = true;
+  $("msg-input").value = "";
+  $("msg-input").style.height = "44px";
+
+  try {
+    const body = JSON.stringify({ role: "customer", text });
+    const res = await fetch(`${LUMENX}/api/threads/${currentThreadId}/messages`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body,
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    await renderThread();
+  } catch (e) {
+    alert("Send failed: " + e.message);
+  } finally {
+    $("send-btn").disabled = false;
+    $("msg-input").focus();
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+// Poll every 3s to pick up admin replies
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    if (document.hidden) return;            // pause while tab is in background
+    if (currentThreadId) renderThread();
+    else loadThreadList();
+  }, 3000);
+}
+
+// Boot
+loadThreadList().then(renderThread).then(startPolling);
+</script>
+</body>
+</html>
