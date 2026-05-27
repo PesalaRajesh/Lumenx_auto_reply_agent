@@ -2,92 +2,177 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>Analytics — LumenX Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Analytics · Lumenx Auto-Reply Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/globals.css"/>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fa; color: #333; }
-    header { background: #1a1f36; color: white; padding: 16px 32px; }
-    header h1 { font-size: 1.2rem; font-weight: 600; }
-    nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 32px; display: flex; }
-    nav a { display: block; padding: 14px 20px; text-decoration: none; color: #555; font-size: 0.9rem; border-bottom: 2px solid transparent; }
-    nav a:hover, nav a.active { color: #4f46e5; border-bottom-color: #4f46e5; }
-    .container { max-width: 1100px; margin: 32px auto; padding: 0 32px; }
-    h2 { font-size: 1.1rem; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; background: white;
-            border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 32px; }
-    th, td { padding: 12px 16px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid #f0f0f0; }
-    th { background: #f9fafb; font-weight: 600; color: #555; }
-    tr:last-child td { border-bottom: none; }
-    .total-row { font-weight: 700; background: #f0f0f0; }
+    .totals { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
+    .total-card {
+      flex: 1; min-width: 200px;
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem 1.3rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .total-card .label {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--slate); font-weight: 700; margin-bottom: 0.3rem;
+    }
+    .total-card .value {
+      font-family: var(--font-display);
+      font-size: 2rem; line-height: 1; color: var(--ink);
+    }
+    .total-card .value.mono {
+      font-family: var(--font-mono); font-size: 1.5rem;
+    }
+    table { font-size: 0.9rem; }
+    td.num, th.num { text-align: right; font-family: var(--font-mono); font-size: 0.84rem; }
+    .total-row td { background: var(--slate-soft); font-weight: 700; }
+    .context-truncate {
+      max-width: 320px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; color: var(--slate);
+      font-family: var(--font-mono); font-size: 0.78rem;
+    }
+    h2.section {
+      margin: 2rem 0 0.8rem;
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      color: var(--ink);
+    }
   </style>
 </head>
 <body>
-<header><h1>🤖 LumenX Auto-Reply Agent</h1></header>
-<nav>
-  <a href="/">Overview</a>
-  <a href="/inbox">Inbox</a>
-  <a href="/analytics" class="active">Analytics</a>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">
+    <span class="dot"></span>
+    Lumenx <span class="subtitle">auto-reply agent</span>
+  </a>
+  <div class="nav-links">
+    <a href="/">Overview</a>
+    <a href="/inbox">Inbox</a>
+    <a href="/wiki">Wiki</a>
+    <a href="/analytics" class="active">Analytics</a>
+  </div>
 </nav>
-<div class="container">
-  <h2>Cost by Model</h2>
+
+<main class="wrapper">
+
+  <div style="margin-bottom: 1.4rem;">
+    <div class="eyebrow">Cost &amp; usage</div>
+    <h1 class="section-title">Analytics</h1>
+    <p class="text-muted" style="margin: 0.3rem 0 0;">
+      Every API call is logged. See per-model spend, daily totals, and the raw token log.
+    </p>
+  </div>
+
+  <div class="totals">
+    <div class="total-card">
+      <div class="label">Total spend</div>
+      <div class="value mono">${{ "%.4f"|format(summary.total_usd or 0) }}</div>
+    </div>
+    <div class="total-card">
+      <div class="label">Models in use</div>
+      <div class="value">{{ summary.by_model|length }}</div>
+    </div>
+    <div class="total-card">
+      <div class="label">Days tracked</div>
+      <div class="value">{{ summary.daily|length }}</div>
+    </div>
+  </div>
+
+  <h2 class="section">By model</h2>
   <table>
-    <thead><tr><th>Model</th><th>Calls</th><th>Input Tokens</th><th>Output Tokens</th><th>Cost (USD)</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th class="num">Calls</th>
+        <th class="num">Input tokens</th>
+        <th class="num">Output tokens</th>
+        <th class="num">Cost</th>
+      </tr>
+    </thead>
     <tbody>
       {% for row in summary.by_model %}
       <tr>
-        <td>{{ row.model }}</td>
-        <td>{{ row.call_count }}</td>
-        <td>{{ "{:,}".format(row.total_input or 0) }}</td>
-        <td>{{ "{:,}".format(row.total_output or 0) }}</td>
-        <td>${{ "%.5f"|format(row.total_cost or 0) }}</td>
+        <td><span class="tag {% if 'sonnet' in row.model %}tag-violet{% elif 'haiku' in row.model %}tag-teal{% else %}tag{% endif %}">{{ row.model }}</span></td>
+        <td class="num">{{ row.call_count }}</td>
+        <td class="num">{{ "{:,}".format(row.total_input  or 0) }}</td>
+        <td class="num">{{ "{:,}".format(row.total_output or 0) }}</td>
+        <td class="num">${{ "%.5f"|format(row.total_cost or 0) }}</td>
       </tr>
       {% endfor %}
       <tr class="total-row">
-        <td>TOTAL</td><td>—</td><td>—</td><td>—</td>
-        <td>${{ "%.5f"|format(summary.total_usd or 0) }}</td>
+        <td>Total</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+        <td class="num">${{ "%.5f"|format(summary.total_usd or 0) }}</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>Daily Cost (Last 30 Days)</h2>
+  <h2 class="section">Daily cost (last 30 days)</h2>
   <table>
-    <thead><tr><th>Date</th><th>Tokens Used</th><th>Cost (USD)</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th class="num">Tokens</th>
+        <th class="num">Cost</th>
+      </tr>
+    </thead>
     <tbody>
       {% for row in summary.daily %}
       <tr>
-        <td>{{ row.day }}</td>
-        <td>{{ "{:,}".format(row.daily_tokens or 0) }}</td>
-        <td>${{ "%.5f"|format(row.daily_cost or 0) }}</td>
+        <td class="mono" style="font-size: 0.84rem;">{{ row.day }}</td>
+        <td class="num">{{ "{:,}".format(row.daily_tokens or 0) }}</td>
+        <td class="num">${{ "%.5f"|format(row.daily_cost or 0) }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  <h2>Recent API Calls</h2>
-  <table id="token-log-table">
-    <thead><tr><th>Time</th><th>Thread</th><th>Step</th><th>Model</th><th>In Tokens</th><th>Out Tokens</th><th>Cost</th><th>Context</th></tr></thead>
+  <h2 class="section">Recent API calls</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Thread</th>
+        <th>Step</th>
+        <th>Model</th>
+        <th class="num">In</th>
+        <th class="num">Out</th>
+        <th class="num">Cost</th>
+        <th>Context</th>
+      </tr>
+    </thead>
     <tbody id="token-log-body"></tbody>
   </table>
-</div>
+
+</main>
+
 <script>
-fetch('/api/token-log?limit=50').then(r=>r.json()).then(rows=>{
+fetch('/api/token-log?limit=50').then(r => r.json()).then(rows => {
   const tbody = document.getElementById('token-log-body');
-  rows.forEach(r=>{
+  rows.forEach(r => {
     const tr = document.createElement('tr');
-    const snip = r.context_snapshot ? r.context_snapshot.substring(0,60)+'…' : '—';
+    const snippet = r.context_snapshot ? r.context_snapshot.substring(0, 80) : '—';
+    const fullCtx = (r.context_snapshot || '').replace(/"/g, '&quot;');
+    const modelTag = r.model && r.model.indexOf('sonnet') >= 0 ? 'tag-violet'
+                    : r.model && r.model.indexOf('haiku')  >= 0 ? 'tag-teal' : 'tag';
     tr.innerHTML = `
-      <td>${r.timestamp?.substring(0,19)||'—'}</td>
-      <td style="font-size:0.78rem">${r.thread_id}</td>
+      <td class="mono" style="font-size: 0.78rem;">${(r.timestamp || '').substring(0,19)}</td>
+      <td class="mono" style="font-size: 0.78rem;">${r.thread_id}</td>
       <td>${r.step}</td>
-      <td>${r.model}</td>
-      <td>${r.input_tokens.toLocaleString()}</td>
-      <td>${r.output_tokens.toLocaleString()}</td>
-      <td>$${(r.cost_usd||0).toFixed(5)}</td>
-      <td title="${r.context_snapshot||''}" style="font-size:0.75rem;color:#888;cursor:help">${snip}</td>
+      <td><span class="tag ${modelTag}">${r.model}</span></td>
+      <td class="num">${r.input_tokens.toLocaleString()}</td>
+      <td class="num">${r.output_tokens.toLocaleString()}</td>
+      <td class="num">$${(r.cost_usd || 0).toFixed(5)}</td>
+      <td><span class="context-truncate" title="${fullCtx}">${snippet}</span></td>
     `;
     tbody.appendChild(tr);
   });
 });
 </script>
+
 </body>
 </html>

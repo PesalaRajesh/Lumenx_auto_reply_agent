@@ -2,125 +2,209 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>Inbox — LumenX Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inbox · Lumenx Auto-Reply Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/globals.css"/>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fa; color: #333; }
-    header { background: #1a1f36; color: white; padding: 16px 32px; }
-    header h1 { font-size: 1.2rem; font-weight: 600; }
-    nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 32px; display: flex; }
-    nav a { display: block; padding: 14px 20px; text-decoration: none; color: #555; font-size: 0.9rem; border-bottom: 2px solid transparent; }
-    nav a:hover, nav a.active { color: #4f46e5; border-bottom-color: #4f46e5; }
-    .container { max-width: 900px; margin: 32px auto; padding: 0 32px; }
-    .draft-card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 20px;
-                  box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .draft-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .thread-id { font-size: 0.8rem; color: #888; }
-    .confidence { font-weight: 600; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; }
-    .conf-high { background: #d1fae5; color: #065f46; }
-    .conf-med  { background: #fef3c7; color: #92400e; }
-    .conf-low  { background: #fee2e2; color: #991b1b; }
-    .intent-badge { background: #ede9fe; color: #5b21b6; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; }
-    .draft-text { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;
-                  padding: 14px; font-size: 0.95rem; line-height: 1.6; margin-bottom: 16px; }
-    textarea.edit-box { width: 100%; min-height: 120px; border: 1px solid #d1d5db;
-                        border-radius: 6px; padding: 10px; font-size: 0.95rem; resize: vertical; }
-    .actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
-    .btn-approve { background: #10b981; color: white; }
-    .btn-edit    { background: #3b82f6; color: white; }
-    .btn-reject  { background: #ef4444; color: white; }
-    .btn-expand  { background: #f3f4f6; color: #374151; }
-    .context-panel { display: none; background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
-                     padding: 14px; font-size: 0.78rem; font-family: monospace; line-height: 1.5;
-                     max-height: 400px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px; }
-    .empty { text-align: center; color: #888; padding: 60px; }
+    .draft {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 1.3rem 1.4rem;
+      margin-bottom: 1rem;
+      transition: opacity 0.25s ease;
+    }
+    .draft-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem;
+    }
+    .thread-id { font-family: var(--font-mono); font-size: 0.78rem; color: var(--slate); }
+    .conf-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.32rem 0.8rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .conf-hi  { background: var(--teal-soft);   color: var(--teal); }
+    .conf-md  { background: #fef3c7;            color: #92400e; }
+    .conf-lo  { background: var(--rose-soft);   color: var(--rose); }
+    .conf-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .draft-text {
+      background: var(--slate-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.1rem; line-height: 1.6;
+      font-size: 0.96rem; color: var(--ink);
+      white-space: pre-wrap;
+    }
+    .edit-box {
+      min-height: 140px; resize: vertical; line-height: 1.55;
+      font-family: inherit; font-size: 0.96rem;
+    }
+    .actions {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;
+    }
+    .ctx-panel {
+      display: none;
+      background: #0f172a; color: #cdd6f4;
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1rem; margin-top: 0.9rem;
+      font-family: var(--font-mono); font-size: 0.78rem;
+      line-height: 1.55; white-space: pre-wrap; max-height: 320px; overflow-y: auto;
+    }
+    .ctx-panel.open { display: block; }
+    .empty {
+      text-align: center; padding: 4rem 2rem; color: var(--slate);
+    }
+    .empty .icon { font-size: 2rem; margin-bottom: 0.6rem; }
+    .resolved { color: var(--teal); font-weight: 600; margin-top: 0.6rem; }
+    .resolved.bad { color: var(--rose); }
   </style>
 </head>
 <body>
-<header><h1>🤖 LumenX Auto-Reply Agent</h1></header>
-<nav>
-  <a href="/">Overview</a>
-  <a href="/inbox" class="active">Inbox</a>
-  <a href="/analytics">Analytics</a>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">
+    <span class="dot"></span>
+    Lumenx <span class="subtitle">auto-reply agent</span>
+  </a>
+  <div class="nav-links">
+    <a href="/">Overview</a>
+    <a href="/inbox" class="active">Inbox</a>
+    <a href="/wiki">Wiki</a>
+    <a href="/analytics">Analytics</a>
+  </div>
 </nav>
-<div class="container">
-  <h2 style="margin-bottom:24px; font-size:1.2rem;">Pending Review ({{ drafts|length }})</h2>
+
+<main class="wrapper">
+
+  <div style="margin-bottom: 1.4rem; display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <div class="eyebrow">Human review</div>
+      <h1 class="section-title">Inbox</h1>
+      <p class="text-muted" style="margin: 0.3rem 0 0;">
+        {{ drafts|length }} draft{{ '' if drafts|length == 1 else 's' }} awaiting review.
+        Approve, edit, or reject — every action trains the Confidence Net.
+      </p>
+    </div>
+    <div>
+      <a href="/inbox"><button class="ghost">↻ Refresh</button></a>
+    </div>
+  </div>
+
   {% if not drafts %}
-    <div class="empty">✅ No drafts pending review</div>
+    <div class="card empty">
+      <div class="icon">✓</div>
+      <div style="font-weight: 600; color: var(--ink-soft); margin-bottom: 0.3rem;">Inbox clear</div>
+      <div style="font-size: 0.92rem;">No drafts pending review. New customer messages will show up here automatically.</div>
+    </div>
   {% endif %}
+
   {% for draft in drafts %}
-  <div class="draft-card" id="card-{{ draft.id }}">
-    <div class="draft-header">
+  <div class="draft" id="card-{{ draft.id }}">
+
+    <div class="draft-head">
       <div>
-        <span class="thread-id">Thread: {{ draft.thread_id }}</span>
-        &nbsp;
-        <span class="intent-badge">{{ draft.intent or 'unknown' }}</span>
+        <span class="thread-id">{{ draft.thread_id }}</span>
+        &nbsp;·&nbsp;
+        <span class="tag tag-violet">{{ draft.intent or 'unknown' }}</span>
       </div>
-      <span class="confidence {% if draft.confidence_score >= 0.75 %}conf-high{% elif draft.confidence_score >= 0.45 %}conf-med{% else %}conf-low{% endif %}">
-        Confidence: {{ "%.1f"|format((draft.confidence_score or 0)*100) }}%
+      {% set conf = draft.confidence_score or 0 %}
+      <span class="conf-pill {% if conf >= 0.75 %}conf-hi{% elif conf >= 0.45 %}conf-md{% else %}conf-lo{% endif %}">
+        <span class="conf-dot"></span>
+        {{ '%.0f'|format(conf * 100) }}% confidence
       </span>
     </div>
+
     <div class="draft-text" id="draft-text-{{ draft.id }}">{{ draft.draft_text }}</div>
-    <textarea class="edit-box" id="edit-{{ draft.id }}" style="display:none">{{ draft.draft_text }}</textarea>
+    <textarea class="edit-box" id="edit-{{ draft.id }}" style="display:none; margin-top: 0.6rem;">{{ draft.draft_text }}</textarea>
+
     <div class="actions">
-      <button class="btn-approve" onclick="approve({{ draft.id }})">✅ Approve & Send</button>
-      <button class="btn-edit" onclick="toggleEdit({{ draft.id }})">✏️ Edit & Send</button>
-      <button class="btn-reject" onclick="reject({{ draft.id }})">❌ Reject</button>
-      <button class="btn-expand" onclick="toggleContext({{ draft.id }})">🔍 Context</button>
+      <button class="primary-teal" onclick="approve({{ draft.id }})">Approve &amp; send</button>
+      <button onclick="toggleEdit({{ draft.id }})">Edit &amp; send</button>
+      <button class="primary-rose" onclick="reject({{ draft.id }})">Reject</button>
+      <button class="ghost" onclick="toggleContext({{ draft.id }})">View context</button>
     </div>
-    <div class="context-panel" id="ctx-{{ draft.id }}">{{ draft.features_json or '(no context snapshot)' }}</div>
+
+    <div class="ctx-panel" id="ctx-{{ draft.id }}">{{ draft.features_json or '(no context snapshot)' }}</div>
   </div>
   {% endfor %}
-</div>
+
+</main>
+
 <script>
 function approve(id) {
-  if(!confirm('Send this reply as-is?')) return;
-  fetch(`/api/drafts/${id}/approve`, {method:'POST'})
-    .then(r=>r.json()).then(()=>{
-      document.getElementById('card-'+id).style.opacity='0.4';
-      document.getElementById('card-'+id).innerHTML += '<p style="color:green;margin-top:8px">✓ Approved & sent</p>';
+  if (!confirm('Send this reply as-is to the customer?')) return;
+  fetch(`/api/drafts/${id}/approve`, { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const card = document.getElementById('card-' + id);
+      card.style.opacity = '0.5';
+      card.insertAdjacentHTML('beforeend', '<div class="resolved">✓ Approved and sent</div>');
     });
 }
+
 function toggleEdit(id) {
-  const box = document.getElementById('edit-'+id);
-  const txt = document.getElementById('draft-text-'+id);
-  if(box.style.display==='none') {
-    box.style.display='block'; txt.style.display='none';
-    // Replace approve button with send-edit button
+  const box = document.getElementById('edit-' + id);
+  const txt = document.getElementById('draft-text-' + id);
+  const showEdit = box.style.display === 'none';
+  box.style.display = showEdit ? 'block' : 'none';
+  txt.style.display = showEdit ? 'none' : 'block';
+
+  const existing = document.getElementById('send-edit-' + id);
+  if (showEdit && !existing) {
     const btn = document.createElement('button');
-    btn.className='btn-edit'; btn.id='send-edit-'+id;
-    btn.textContent='📤 Send Edited';
-    btn.onclick=()=>sendEdit(id);
+    btn.id = 'send-edit-' + id;
+    btn.className = 'primary-violet';
+    btn.textContent = 'Send edited reply';
+    btn.onclick = () => sendEdit(id);
     document.querySelector(`#card-${id} .actions`).prepend(btn);
-  } else {
-    box.style.display='none'; txt.style.display='block';
-    const b=document.getElementById('send-edit-'+id); if(b)b.remove();
+  } else if (!showEdit && existing) {
+    existing.remove();
   }
 }
+
 function sendEdit(id) {
-  const text = document.getElementById('edit-'+id).value.trim();
-  if(!text) return alert('Reply text cannot be empty');
-  fetch(`/api/drafts/${id}/edit`, {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({final_text: text})})
-    .then(r=>r.json()).then(d=>{
-      document.getElementById('card-'+id).style.opacity='0.4';
-      document.getElementById('card-'+id).innerHTML += `<p style="color:blue;margin-top:8px">✏️ Edited & sent (label: ${(d.label*100).toFixed(0)}%)</p>`;
+  const text = document.getElementById('edit-' + id).value.trim();
+  if (!text) return alert('Reply text cannot be empty');
+  fetch(`/api/drafts/${id}/edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ final_text: text }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      const card = document.getElementById('card-' + id);
+      card.style.opacity = '0.5';
+      card.insertAdjacentHTML('beforeend',
+        `<div class="resolved">✎ Edited &amp; sent · similarity label = ${(d.label*100).toFixed(0)}%</div>`);
     });
 }
+
 function reject(id) {
-  const manual = prompt('Optional: enter a manual reply to send instead (or leave blank to just reject):');
-  fetch(`/api/drafts/${id}/reject`, {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({manual_reply: manual||''})})
-    .then(r=>r.json()).then(()=>{
-      document.getElementById('card-'+id).style.opacity='0.4';
-      document.getElementById('card-'+id).innerHTML += '<p style="color:red;margin-top:8px">✗ Rejected</p>';
+  const manual = prompt('Optional: enter a manual reply to send instead, or leave blank to just reject:');
+  fetch(`/api/drafts/${id}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ manual_reply: manual || '' }),
+  })
+    .then(r => r.json())
+    .then(() => {
+      const card = document.getElementById('card-' + id);
+      card.style.opacity = '0.5';
+      card.insertAdjacentHTML('beforeend',
+        '<div class="resolved bad">✗ Rejected — Confidence Net learns to avoid this pattern</div>');
     });
 }
+
 function toggleContext(id) {
-  const panel = document.getElementById('ctx-'+id);
-  panel.style.display = panel.style.display==='block' ? 'none' : 'block';
+  document.getElementById('ctx-' + id).classList.toggle('open');
 }
 </script>
+
 </body>
 </html>

@@ -25,6 +25,11 @@ load_dotenv()
 app = FastAPI(title="LumenX Agent Dashboard")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
+# Serve shared CSS / JS from /static (Lumenx design tokens, etc.)
+_static_dir = Path(__file__).parent / "static"
+_static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
 # Mount the wiki explorer router
 from dashboard.routers import wiki_explorer  # noqa: E402
 app.include_router(wiki_explorer.router)
