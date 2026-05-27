@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LumenX Agent Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f5f7fa; color: #333; }
+    header { background: #1a1f36; color: white; padding: 16px 32px;
+             display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    nav { background: #fff; border-bottom: 1px solid #e0e0e0;
+          padding: 0 32px; display: flex; gap: 0; }
+    nav a { display: block; padding: 14px 20px; text-decoration: none;
+            color: #555; font-size: 0.9rem; border-bottom: 2px solid transparent; }
+    nav a:hover, nav a.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+    .container { max-width: 1200px; margin: 32px auto; padding: 0 32px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: white; border-radius: 8px; padding: 20px;
+                 box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .stat-card .value { font-size: 2rem; font-weight: 700; color: #4f46e5; }
+    .stat-card .label { font-size: 0.8rem; color: #888; margin-top: 4px; }
+    .badge-pending { background: #fef3c7; color: #92400e; border-radius: 4px; padding: 2px 8px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+<header>
+  <span>🤖</span>
+  <h1>LumenX Auto-Reply Agent</h1>
+</header>
+<nav>
+  <a href="/" class="active">Overview</a>
+  <a href="/inbox">Inbox</a>
+  <a href="/analytics">Analytics</a>
+</nav>
+<div class="container">
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="value" id="stat-pending">—</div><div class="label">Pending Review</div></div>
+    <div class="stat-card"><div class="value" id="stat-auto">—</div><div class="label">Auto-Sent</div></div>
+    <div class="stat-card"><div class="value" id="stat-total">—</div><div class="label">Total Drafts</div></div>
+    <div class="stat-card"><div class="value" id="stat-labels">—</div><div class="label">Training Labels</div></div>
+    <div class="stat-card"><div class="value" id="stat-cost">—</div><div class="label">Total Cost (USD)</div></div>
+  </div>
+  <p style="color:#888; font-size:0.85rem;">
+    Auto-reply pipeline running ·
+    <a href="/inbox" style="color:#4f46e5">Review pending drafts →</a>
+  </p>
+</div>
+<script>
+  fetch('/api/stats').then(r=>r.json()).then(d => {
+    document.getElementById('stat-pending').textContent = d.pending_drafts;
+    document.getElementById('stat-auto').textContent = d.auto_sent;
+    document.getElementById('stat-total').textContent = d.total_drafts;
+    document.getElementById('stat-labels').textContent = d.labelled_examples;
+    document.getElementById('stat-cost').textContent = '$' + d.total_cost_usd.toFixed(4);
+  });
+</script>
+</body>
+</html>

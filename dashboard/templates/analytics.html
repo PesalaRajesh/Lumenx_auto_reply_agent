@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Analytics — LumenX Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fa; color: #333; }
+    header { background: #1a1f36; color: white; padding: 16px 32px; }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 32px; display: flex; }
+    nav a { display: block; padding: 14px 20px; text-decoration: none; color: #555; font-size: 0.9rem; border-bottom: 2px solid transparent; }
+    nav a:hover, nav a.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 32px; }
+    h2 { font-size: 1.1rem; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; background: white;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 32px; }
+    th, td { padding: 12px 16px; text-align: left; font-size: 0.88rem; border-bottom: 1px solid #f0f0f0; }
+    th { background: #f9fafb; font-weight: 600; color: #555; }
+    tr:last-child td { border-bottom: none; }
+    .total-row { font-weight: 700; background: #f0f0f0; }
+  </style>
+</head>
+<body>
+<header><h1>🤖 LumenX Auto-Reply Agent</h1></header>
+<nav>
+  <a href="/">Overview</a>
+  <a href="/inbox">Inbox</a>
+  <a href="/analytics" class="active">Analytics</a>
+</nav>
+<div class="container">
+  <h2>Cost by Model</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Calls</th><th>Input Tokens</th><th>Output Tokens</th><th>Cost (USD)</th></tr></thead>
+    <tbody>
+      {% for row in summary.by_model %}
+      <tr>
+        <td>{{ row.model }}</td>
+        <td>{{ row.call_count }}</td>
+        <td>{{ "{:,}".format(row.total_input or 0) }}</td>
+        <td>{{ "{:,}".format(row.total_output or 0) }}</td>
+        <td>${{ "%.5f"|format(row.total_cost or 0) }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>TOTAL</td><td>—</td><td>—</td><td>—</td>
+        <td>${{ "%.5f"|format(summary.total_usd or 0) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Daily Cost (Last 30 Days)</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Tokens Used</th><th>Cost (USD)</th></tr></thead>
+    <tbody>
+      {% for row in summary.daily %}
+      <tr>
+        <td>{{ row.day }}</td>
+        <td>{{ "{:,}".format(row.daily_tokens or 0) }}</td>
+        <td>${{ "%.5f"|format(row.daily_cost or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Recent API Calls</h2>
+  <table id="token-log-table">
+    <thead><tr><th>Time</th><th>Thread</th><th>Step</th><th>Model</th><th>In Tokens</th><th>Out Tokens</th><th>Cost</th><th>Context</th></tr></thead>
+    <tbody id="token-log-body"></tbody>
+  </table>
+</div>
+<script>
+fetch('/api/token-log?limit=50').then(r=>r.json()).then(rows=>{
+  const tbody = document.getElementById('token-log-body');
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    const snip = r.context_snapshot ? r.context_snapshot.substring(0,60)+'…' : '—';
+    tr.innerHTML = `
+      <td>${r.timestamp?.substring(0,19)||'—'}</td>
+      <td style="font-size:0.78rem">${r.thread_id}</td>
+      <td>${r.step}</td>
+      <td>${r.model}</td>
+      <td>${r.input_tokens.toLocaleString()}</td>
+      <td>${r.output_tokens.toLocaleString()}</td>
+      <td>$${(r.cost_usd||0).toFixed(5)}</td>
+      <td title="${r.context_snapshot||''}" style="font-size:0.75rem;color:#888;cursor:help">${snip}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+});
+</script>
+</body>
+</html>

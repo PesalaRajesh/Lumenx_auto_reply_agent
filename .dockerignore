@@ -1,0 +1,36 @@
+# Don't bake secrets or local state into the image
+.env
+*.env.local
+
+# Local virtualenv
+venv/
+.venv/
+env/
+
+# Python bytecode + caches
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Local SQLite — Railway provides a volume mount for /data
+data/agent.db
+data/agent.db-shm
+data/agent.db-wal
+
+# Local exports (regenerable from /api/admin/export)
+data/export_bootstrap.json
+
+# Wiki pages are regenerated on bootstrap; if deploying with pre-built wiki,
+# REMOVE the next line:
+# wiki/pages/
+
+# Local trained model — keep or rebuild on first run
+# training/confidence_net.pt
+
+# IDE / OS junk
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp

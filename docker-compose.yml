@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  # ── Dashboard + API ──────────────────────────────────────────
+  dashboard:
+    build: .
+    command: uvicorn dashboard.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - agent_data:/app/data
+      - agent_wiki:/app/wiki/pages
+    env_file: .env
+    depends_on:
+      - bootstrap
+    restart: unless-stopped
+
+  # ── Inbox polling daemon ─────────────────────────────────────
+  poller:
+    build: .
+    command: python scripts/poll_inbox.py
+    volumes:
+      - agent_data:/app/data
+      - agent_wiki:/app/wiki/pages
+    env_file: .env
+    depends_on:
+      - bootstrap
+    restart: unless-stopped
+
+  # ── One-shot bootstrap (runs once, exits) ─────────────────────
+  bootstrap:
+    build: .
+    command: python scripts/bootstrap.py
+    volumes:
+      - agent_data:/app/data
+      - agent_wiki:/app/wiki/pages
+    env_file: .env
+    restart: "no"
+
+volumes:
+  agent_data:
+  agent_wiki:

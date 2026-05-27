@@ -1,0 +1,39 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Database (local only — regenerated via volume mount in production)
+data/agent.db
+data/agent.db-shm
+data/agent.db-wal
+data/export_bootstrap.json
+
+# NOTE: We DO commit wiki/pages/ and training/confidence_net.pt so the
+# deployed agent works out of the box without re-running the bootstrap.
+# (They're small — ~50KB total — and slow/expensive to regenerate.)
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

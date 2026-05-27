@@ -1,0 +1,43 @@
+# LumenX Auto-Reply Agent — Python Dependencies
+
+# Claude / LLM
+anthropic>=0.40.0              # Anthropic Python SDK with prompt caching support
+
+# Web framework (dashboard)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+jinja2>=3.1.4
+python-multipart>=0.0.12       # Form parsing
+
+# Async HTTP (LumenX API calls)
+httpx>=0.28.0
+truststore>=0.10.0             # Use Windows/macOS native cert store (corporate proxies)
+
+# Data models
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# Database
+aiosqlite>=0.20.0
+
+# ML / Confidence Net
+torch>=2.5.0
+numpy>=2.1.0
+scikit-learn>=1.5.0            # Preprocessing, metrics
+
+# Text processing / Wiki retrieval
+rank-bm25>=0.2.2               # BM25 full-text retrieval
+nltk>=3.9.0                    # Tokenization for BM25
+Levenshtein>=0.26.0            # Edit distance for label computation
+
+# Utilities
+python-dotenv>=1.0.1           # .env loading
+rich>=13.9.0                   # Pretty CLI output
+typer>=0.13.0                  # CLI scripts
+tenacity>=9.0.0                # Retry logic for API calls
+python-dateutil>=2.9.0
+
+# Dev / Testing
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+httpx                          # Also used as AsyncClient in tests
