@@ -34,6 +34,10 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 from dashboard.routers import wiki_explorer  # noqa: E402
 app.include_router(wiki_explorer.router)
 
+# Proxy LumenX customer endpoints so the local /chat page bypasses CORS
+from dashboard.routers import chat_proxy  # noqa: E402
+app.include_router(chat_proxy.router)
+
 DB_PATH    = os.getenv("DB_PATH", "data/agent.db")
 BASE_URL   = os.getenv("LUMENX_BASE_URL", "https://lumenx-demo.up.railway.app")
 ADMIN_TOKEN = os.getenv("LUMENX_ADMIN_TOKEN", "")

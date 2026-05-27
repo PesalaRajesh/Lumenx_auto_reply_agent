@@ -169,7 +169,8 @@
 </div>
 
 <script>
-const LUMENX = "https://lumenx-demo.up.railway.app";
+// Talk to LumenX through our local FastAPI proxy (avoids browser CORS).
+const API = "/api/chat";
 let username = localStorage.getItem("chat_username") || "you_" + Math.random().toString(36).slice(2, 6);
 let currentThreadId = localStorage.getItem("chat_thread_id") || null;
 let lastMessageCount = 0;
@@ -206,7 +207,7 @@ $("send-btn").addEventListener("click", sendMessage);
 
 async function loadThreadList() {
   try {
-    const res = await fetch(`${LUMENX}/api/threads?username=${encodeURIComponent(username)}`);
+    const res = await fetch(`${API}/threads?username=${encodeURIComponent(username)}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     setStatus(true);
@@ -238,7 +239,7 @@ async function loadThreadList() {
 async function newThread() {
   try {
     const body = JSON.stringify({ username, display_name: username });
-    const res = await fetch(`${LUMENX}/api/threads`, {
+    const res = await fetch(`${API}/threads`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body,
     });
     const data = await res.json();
@@ -267,7 +268,7 @@ async function renderThread() {
   $("current-thread-id").textContent = currentThreadId;
 
   try {
-    const res = await fetch(`${LUMENX}/api/threads/${currentThreadId}?viewer=customer`);
+    const res = await fetch(`${API}/threads/${currentThreadId}`);
     if (!res.ok) {
       if (res.status === 404) {
         // Thread was wiped (Lumenx reseeds on container boot) — start a fresh one
@@ -338,7 +339,7 @@ async function sendMessage() {
 
   try {
     const body = JSON.stringify({ role: "customer", text });
-    const res = await fetch(`${LUMENX}/api/threads/${currentThreadId}/messages`, {
+    const res = await fetch(`${API}/threads/${currentThreadId}/messages`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body,
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
