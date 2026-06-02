@@ -25,10 +25,6 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8080
 
-# Copy and make the startup script executable
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# Runs both uvicorn (web) and poll_inbox.py (worker) in the same container
-# so they share the same SQLite database file
-CMD ["/app/start.sh"]
+# Single process: uvicorn runs the web server; the inbox poller starts
+# as an asyncio background task inside the same event loop (dashboard/main.py lifespan)
+CMD ["sh", "-c", "uvicorn dashboard.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

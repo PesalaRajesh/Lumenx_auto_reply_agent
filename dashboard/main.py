@@ -8,8 +8,11 @@ Start with:
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -22,64 +25,46 @@ from Levenshtein import ratio as lev_ratio
 
 load_dotenv()
 
-app = FastAPI(title="LumenX Agent Dashboard")
+logger = logging.getLogger(__name__)
+
+DB_PATH    = os.getenv("DB_PATH", "data/agent.db")
+BASE_URL   = os.getenv("LUMENX_BASE_URL", "https://lumenx-demo.up.railway.app")
+ADMIN_TOKEN = os.getenv("LUMENX_ADMIN_TOKEN", "")
 
 
-@app.on_event("startup")
-async def _init_db() -> None:
-    """Create tables if they don't exist (safe on a fresh deploy)."""
-    async with aiosqlite.connect(os.getenv("DB_PATH", "data/agent.db")) as db:
-        await db.executescript("""
-            CREATE TABLE IF NOT EXISTS threads (
-                id TEXT PRIMARY KEY,
-                subject TEXT,
-                customer_name TEXT,
-                status TEXT,
-                created_at TEXT
-            );
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY,
-                thread_id TEXT,
-                role TEXT,
-                text TEXT,
-                timestamp TEXT
-            );
-            CREATE TABLE IF NOT EXISTS drafts (
-                id INTEGER PRIMARY KEY,
-                thread_id TEXT,
-                draft_text TEXT,
-                confidence_score REAL,
-                intent TEXT,
-                features_json TEXT,
-                status TEXT,
-                final_text TEXT,
-                edit_distance REAL,
-                label REAL,
-                created_at TEXT,
-                resolved_at TEXT
-            );
-            CREATE TABLE IF NOT EXISTS token_log (
-                id INTEGER PRIMARY KEY,
-                thread_id TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                step TEXT NOT NULL,
-                model TEXT NOT NULL,
-                input_tokens INTEGER NOT NULL,
-                output_tokens INTEGER NOT NULL,
-                cost_usd REAL NOT NULL,
-                context_snapshot TEXT
-            );
-            CREATE TABLE IF NOT EXISTS feedback (
-                id INTEGER PRIMARY KEY,
-                draft_id INTEGER,
-                action TEXT,
-                original_text TEXT,
-                final_text TEXT,
-                label REAL,
-                timestamp TEXT
-            );
-        """)
-        await db.commit()
+async def _run_poller() -> None:
+    """Run the inbox poller as a background asyncio task. Restarts on crash."""
+    while True:
+        try:
+            from scripts.poll_inbox import main as poll_main
+            await poll_main()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Poller crashed — restarting in 30 s")
+            await asyncio.sleep(30)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Init all DB tables (threads, messages, drafts, token_log, feedback, products_cache)
+    from data.database import Database
+    await Database(DB_PATH).init()
+
+    # Start the inbox poller in the same event loop — shares memory with the web server
+    poller = asyncio.create_task(_run_poller())
+    logger.info("Inbox poller started as background task")
+
+    yield  # app runs here
+
+    poller.cancel()
+    try:
+        await poller
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="LumenX Agent Dashboard", lifespan=lifespan)
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 # Serve shared CSS / JS from /static (Lumenx design tokens, etc.)
@@ -94,10 +79,6 @@ app.include_router(wiki_explorer.router)
 # Proxy LumenX customer endpoints so the local /chat page bypasses CORS
 from dashboard.routers import chat_proxy  # noqa: E402
 app.include_router(chat_proxy.router)
-
-DB_PATH    = os.getenv("DB_PATH", "data/agent.db")
-BASE_URL   = os.getenv("LUMENX_BASE_URL", "https://lumenx-demo.up.railway.app")
-ADMIN_TOKEN = os.getenv("LUMENX_ADMIN_TOKEN", "")
 
 
 # ──────────────────────────────────────────────────────────────
