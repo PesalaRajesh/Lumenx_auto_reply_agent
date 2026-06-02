@@ -23,6 +23,63 @@ from Levenshtein import ratio as lev_ratio
 load_dotenv()
 
 app = FastAPI(title="LumenX Agent Dashboard")
+
+
+@app.on_event("startup")
+async def _init_db() -> None:
+    """Create tables if they don't exist (safe on a fresh deploy)."""
+    async with aiosqlite.connect(os.getenv("DB_PATH", "data/agent.db")) as db:
+        await db.executescript("""
+            CREATE TABLE IF NOT EXISTS threads (
+                id TEXT PRIMARY KEY,
+                subject TEXT,
+                customer_name TEXT,
+                status TEXT,
+                created_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY,
+                thread_id TEXT,
+                role TEXT,
+                text TEXT,
+                timestamp TEXT
+            );
+            CREATE TABLE IF NOT EXISTS drafts (
+                id INTEGER PRIMARY KEY,
+                thread_id TEXT,
+                draft_text TEXT,
+                confidence_score REAL,
+                intent TEXT,
+                features_json TEXT,
+                status TEXT,
+                final_text TEXT,
+                edit_distance REAL,
+                label REAL,
+                created_at TEXT,
+                resolved_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS token_log (
+                id INTEGER PRIMARY KEY,
+                thread_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                step TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                cost_usd REAL NOT NULL,
+                context_snapshot TEXT
+            );
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY,
+                draft_id INTEGER,
+                action TEXT,
+                original_text TEXT,
+                final_text TEXT,
+                label REAL,
+                timestamp TEXT
+            );
+        """)
+        await db.commit()
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 # Serve shared CSS / JS from /static (Lumenx design tokens, etc.)

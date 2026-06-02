@@ -24,3 +24,5 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 EXPOSE 8080
+
+CMD ["sh", "-c", "uvicorn dashboard.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
