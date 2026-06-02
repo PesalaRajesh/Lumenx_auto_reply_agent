@@ -1,0 +1,5 @@
+# Force shell scripts to always use LF in the repo (needed for Linux Docker)
+*.sh text eol=lf
+
+# Everything else uses auto line endings
+* text=auto
