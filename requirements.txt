@@ -41,3 +41,4 @@ python-dateutil>=2.9.0
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
 httpx                          # Also used as AsyncClient in tests
+playwright>=1.60.0             # Headless-browser e2e tests (scripts/e2e_*.py)
